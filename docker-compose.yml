@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  traefik:
+    image: traefik:v3.3
+    container_name: traefik
+    restart: unless-stopped
+    command:
+      - "--configFile=/etc/traefik/traefik.yml"
+    ports:
+      - "80:80"      # HTTP
+      - "443:443"    # HTTPS
+      - "8888:8888"  # Traefik dashboard
+      - "5432:5432"  # a tcp port for postgres for ex
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./certs:/certs:ro"
+      - "./config:/etc/traefik:ro"
+    #networks:
+    #  - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik-tools.mydom.lan`)"
+      - "traefik.http.routers.traefik.entrypoints=dashboard"
+      - "traefik.http.routers.traefik.service=api@internal"
+
+  portainer:
+    image: portainer/portainer-ce
+    container_name: portainer
+    restart: unless-stopped
+    command: -H unix:///var/run/docker.sock
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "portainer_data:/data"
+    #networks:
+    #  - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.portainer.rule=Host(`portainer-tools.mydoman.lan`)"
+      - "traefik.http.routers.portainer.entrypoints=websecure"
+      - "traefik.http.routers.portainer.tls=true"
+      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
+
+  #whoami:
+  #  image: traefik/whoami
+  #  container_name: whoami
+  #  restart: unless-stopped
+  #  #networks:
+  #  #  - proxy
+  #  labels:
+  #    - "traefik.enable=true"
+  #    - "traefik.http.routers.whoami.rule=Host(`whoami.mydom.lan`)"
+  #    - "traefik.http.routers.whoami.entrypoints=web"
+  #    - "traefik.http.routers.whoami.service=whoami"
+  #    - "traefik.http.services.whoami.loadbalancer.server.port=80"
+
+volumes:
+  portainer_data:
+
+#networks:
+#  proxy:
+#    name: proxy
